@@ -2,60 +2,13 @@ from kivy.app import App
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.image import Image, AsyncImage
-from kivy.uix.label import Label
 from kivy.core.window import Window
 from kivy.uix.scrollview import ScrollView
 from kivy.app import App
+from recommendation_system import RecommendationSystem
+from gui.movie_list_element import MovieListElement
 
-
-liked_movies_list = []
-
-class MovieListElement(GridLayout):
-    def __init__(self, movie_title='Movie title', poster_path='images/image-remove-outline.png', liked=False, **kwargs):
-        super(MovieListElement, self).__init__(**kwargs)
-
-        self.cols = 3
-        self.height = 150
-        self.size_hint=(1, None)
-        self.liked = liked
-        self.movie_title = movie_title
-
-        self.poster_img = AsyncImage(
-            source=poster_path,
-            size_hint=(None, 1),
-            allow_stretch=False,
-            keep_ratio=True
-            )
-        self.title_label = Label(text=movie_title, color="black")
-        self.title_label.halign='left'
-
-        self.liked_img_path = 'images/heart-outline.png' if not self.liked else 'images/heart-off-outline.png'
-        
-        self.liked_img = Image(
-            source=self.liked_img_path,
-            size_hint=(None, 1),
-            width=50,
-            height=50,
-            allow_stretch=False,
-            keep_ratio=True,
-            )
-
-        self.add_widget(self.poster_img)
-        self.add_widget(self.title_label)
-        self.add_widget(self.liked_img)
-
-    def toggle_like(self, instance, touch):
-        if instance.collide_point(*touch.pos):
-            self.liked = not self.liked
-            self.liked_img.source = 'images/heart-outline.png' if not self.liked else 'images/heart-off-outline.png'
-
-            if self.liked:
-                if self.movie_title not in liked_movies_list:
-                    liked_movies_list.append(self.movie_title)
-            else:
-                if self.movie_title in liked_movies_list:
-                    liked_movies_list.remove(self.movie_title)
+recsys = RecommendationSystem()
 
 
 class MovieList(BoxLayout):
@@ -90,12 +43,9 @@ class MovieRecomApp(App):
         body_layout = GridLayout(cols=1)
 
         # menu_layout = StackLayout(orientation='tb-lr')
-
-        
         # menu_layout.add_widget(Label(text="Dashboard", height=200, color="black"))
         # menu_layout.add_widget(Label(text="Search", height=200, color="black"))
         # menu_layout.add_widget(Label(text="Liked", height=200, color="black"))
-
         # body_layout.add_widget(menu_layout)
         # body_layout.add_widget(Label(text='Page', color="black"))
 
@@ -121,40 +71,27 @@ def find_movie_list(widget):
             return found
     return None
 
-import requests
 
 def user_search_query(instance):
     search_query = instance.text.strip()
     if not search_query:
         return
 
-    # Make API request to OMDB
-    api_key = '3ade98ca'  # Replace with your OMDB API key
-    url = f'http://www.omdbapi.com/?apikey={api_key}&s={search_query}'
+    movie_result_list = recsys.movie_query(search_query)
+    if not movie_result_list:
+        return
 
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
+    movie_list = find_movie_list(App.get_running_app().root)
+    if movie_list:
+        movie_list.clear_widgets()
+        movie_list.height = 0
 
-        # Clear existing movie list
-        movie_list = find_movie_list(App.get_running_app().root)
-        if movie_list:
-            movie_list.clear_widgets()
+    for movie_result in movie_result_list:
+        new_movie_element = MovieListElement(movie_result, recsys)
+        movie_list.add_widget(new_movie_element)
 
-        # Display search results in MovieList
-        if 'Search' in data:
-            for movie in data['Search']:
-                movie_title = movie['Title']
-                poster_path = movie['Poster']
-                liked = False  # You can customize this based on user preferences
-                new_movie_element = MovieListElement(movie_title=movie_title, poster_path=poster_path, liked=liked)
-                movie_list.add_widget(new_movie_element)
-
-                # Update MovieList height dynamically
-                movie_list.height += new_movie_element.height
-    else:
-        print(f"Error: {response.status_code} - {response.text}")
-
+        # Update MovieList height dynamically
+        movie_list.height += new_movie_element.height
 
 if __name__ == '__main__':
     MovieRecomApp().run()

@@ -1,9 +1,22 @@
 #:kivy 1.0.9
 
 <Label>:
+    text_size: self.size
+    halign: 'left'
+    valign: 'middle'
+    font_familly: 'Helvetica'
+    # canvas.before:
+    #     Color:
+    #         rgba: 1, 0, 0, 1
+    #     Line:
+    #         width: 2
+    #         rectangle: self.x, self.y, self.width, self.height
+
+
+<MovieListElement>
     canvas.before:
         Color:
-            rgba: 1, 0, 0, 1
+            rgba: 0, 0, 0, 1
         Line:
-            width: 2
+            width: 1
             rectangle: self.x, self.y, self.width, self.height
