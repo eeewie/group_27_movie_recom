@@ -3,6 +3,9 @@ from movie import Movie, Genre, Person
 from pandas import Series, DataFrame
 import pandas as pd
 import requests
+from kivy.app import App
+from kivy.uix.label import Label
+
 
 class RecommendationSystem():
     def __init__(self) -> None:
@@ -106,16 +109,66 @@ class RecommendationSystem():
         return actor_list
 
 
-    def set_liked_movie(self, movie:Movie, liked:bool):
+    def set_liked_movie(self, movie, liked):
         movie.liked = liked
         if liked:
-            df_movie  = DataFrame([movie.to_dict()])
+            df_movie = pd.DataFrame([movie.to_dict()])
             self.liked_movies = pd.concat(
                 [self.liked_movies, df_movie],
                 ignore_index=True)
+            self.update_liked_movies_ui(movie, add=True)
         else:
             self.liked_movies = self.liked_movies.drop(self.liked_movies[self.liked_movies['imdb_id'] == movie.imdb_id].index)
+            self.update_liked_movies_ui(movie, add=False)
         print(self.liked_movies)
+
+    def generate_recommendations(self):
+        recommendations = pd.DataFrame()
+        if not self.liked_movies.empty:
+            liked_directors = self.liked_movies['director'].unique()
+            liked_actors = self.liked_movies['actors'].explode().unique()
+            liked_genres = self.liked_movies['genre'].unique()
+
+            recommendations = self.all_movies[
+                (self.all_movies['director'].isin(liked_directors)) |
+                (self.all_movies['actors'].explode().isin(liked_actors)) |
+                (self.all_movies['genre'].isin(liked_genres))
+            ].drop_duplicates()
+
+            # Remove already liked movies from recommendations
+            recommendations = recommendations[~recommendations['imdb_id'].isin(self.liked_movies['imdb_id'])]
+        
+        print(f"Generated recommendations: {recommendations}")
+        return recommendations
+
+    def update_liked_movies_ui(self, movie, add):
+        print("Attempting to update UI...")
+        try:
+            app = App.get_running_app()
+            print("App instance:", app)
+            root_widget = app.root
+            print("Root widget:", root_widget)
+            print("Root ids available:", root_widget.ids)
+
+            if 'liked_movies_list' in root_widget.ids:
+                movie_list_widget = root_widget.ids.liked_movies_list
+                print("Movie list widget found:", movie_list_widget)
+
+                if add:
+                    movie_list_widget.add_widget(Label(text=movie.title))
+                    print(f"Added movie to liked list: {movie.title}")
+                else:
+                    for child in movie_list_widget.children[:]:
+                        if isinstance(child, Label) and child.text == movie.title:
+                            movie_list_widget.remove_widget(child)
+                            print(f"Removed movie from liked list: {movie.title}")
+                            break
+            else:
+                print("liked_movies_list id not found")
+
+        except Exception as e:
+            print(f"Error during UI update: {e}")
+        
 
     def set_liked_genre(self, genre:Genre, liked:bool):
         genre.liked = liked
@@ -147,5 +200,4 @@ class RecommendationSystem():
         else:
             self.liked_actors = self.liked_actors.drop(self.liked_actors[self.liked_actors == actor.name].index)
 
-
-
+recsys = RecommendationSystem()
