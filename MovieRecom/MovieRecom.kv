@@ -1,19 +1,42 @@
 #:kivy 1.0.9
 
+<MainLayout>:
+    do_default_tab: False
+    TabbedPanel:
+        id: tab_panel
+        on_current_tab: app.root.handle_tab_switch(*args)
+
+        TabbedPanelItem:
+            text: 'Search'
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    text: 'Search Area'
+
+        TabbedPanelItem:
+            text: 'Liked Movies'
+            ScrollView:
+                GridLayout:
+                    id: liked_movies_list
+                    cols: 1
+                    size_hint_y: None
+                    height: self.minimum_height
+
+        TabbedPanelItem:
+            text: 'Recommended'
+            ScrollView:
+                GridLayout:
+                    id: recommended_movies_list
+                    cols: 1
+                    size_hint_y: None
+                    height: self.minimum_height
 <Label>:
     text_size: self.size
     halign: 'left'
     valign: 'middle'
-    font_familly: 'Helvetica'
-    # canvas.before:
-    #     Color:
-    #         rgba: 1, 0, 0, 1
-    #     Line:
-    #         width: 2
-    #         rectangle: self.x, self.y, self.width, self.height
+    font_family: 'Helvetica'
 
-
-<MovieListElement>
+<MovieListElement>:
     canvas.before:
         Color:
             rgba: 0, 0, 0, 1
