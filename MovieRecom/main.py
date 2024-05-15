@@ -6,7 +6,7 @@ from kivy.core.window import Window
 from kivy.uix.scrollview import ScrollView
 from kivy.lang import Builder
 from recommendation_system import RecommendationSystem
-from gui.movie_list_element import MovieListElement
+from movie_list_element import MovieListElement
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.label import Label
 
@@ -33,8 +33,8 @@ class SearchBar(BoxLayout):
         self.add_widget(self.search_input)
 
 
-
 class MainLayout(TabbedPanel):
+
     def __init__(self, **kwargs):
         super(MainLayout, self).__init__(**kwargs)
         self.do_default_tab = False  # Disable the default tab created by Kivy
@@ -45,8 +45,8 @@ class MainLayout(TabbedPanel):
         liked_tab = TabbedPanelItem(text='Liked Movies')
         recommended_tab = TabbedPanelItem(text='Recommended')
 
-      # Set up the search tab with a vertical BoxLayout
-        search_layout = BoxLayout(orientation='vertical')  # Organizes children vertically
+        # Set up the search tab with a vertical BoxLayout
+        search_layout = BoxLayout(orientation='vertical')
         search_bar = SearchBar()
         movie_scroll = ScrollView(size_hint_y=1)
         movie_list = MovieList()
@@ -59,38 +59,91 @@ class MainLayout(TabbedPanel):
         # Add the search_layout to the search_tab
         search_tab.add_widget(search_layout)
         
-        
         # Add tabs to the tabbed panel
         self.add_widget(search_tab)
         self.add_widget(liked_tab)
         self.add_widget(recommended_tab)
         
+        # Set up liked movies tab with a vertical BoxLayout
+        liked_layout = BoxLayout(orientation='vertical')
+        liked_scroll = ScrollView(size_hint=(1, 1))
+        self.liked_movies_list = GridLayout(cols=1, spacing=100, size_hint_y=None)
+        self.liked_movies_list.bind(minimum_height=self.liked_movies_list.setter('height'))
+        liked_scroll.add_widget(self.liked_movies_list)
+        liked_layout.add_widget(liked_scroll)
+        liked_tab.add_widget(liked_layout)
+        self.ids['liked_movies_list'] = self.liked_movies_list  # Store reference to liked_movies_list
+        
+        
+        # Set up recommended movies tab with a vertical BoxLayout
+        recommended_layout = BoxLayout(orientation='vertical')
+        recommended_scroll = ScrollView(size_hint=(1, 1))
+        self.recommended_movies_list = GridLayout(cols=1, spacing=100, size_hint_y=None)
+        self.recommended_movies_list.bind(minimum_height=self.recommended_movies_list.setter('height'))
+        recommended_scroll.add_widget(self.recommended_movies_list)
+        recommended_layout.add_widget(recommended_scroll)
+        recommended_tab.add_widget(recommended_layout)
+        self.ids['recommended_movies_list'] = self.recommended_movies_list
+        
+        # Explicitly set the ids dictionary
+        self.ids = {
+            'liked_movies_list': self.liked_movies_list,
+            'recommended_movies_list': self.recommended_movies_list
+        }
+        print("Tabs initialized and ids set")  # Debugging statement
+
+    def on_touch_down(self, touch):
+        print("Touch event detected")  # Debugging statement
+        return super(MainLayout, self).on_touch_down(touch)
+    
     def handle_tab_switch(self, *args):
-        print(f"Current tab: {self.current_tab.text}")
+        print(f"Current tab: {self.current_tab.text}")  # Debugging statement
         if self.current_tab.text == 'Liked Movies':
-                self.update_liked_movies_list()
+            print("Switching to Liked Movies tab")  # Debugging statement
+            self.update_liked_movies_list()
         elif self.current_tab.text == 'Recommended':
-                self.update_recommendations_tab()
+            print("Switching to Recommended tab")  # Debugging statement
+            self.update_recommendations_tab()
 
     def update_liked_movies_list(self):
         print("Updating liked movies list...")
-        movies_grid = self.ids.liked_movies_list
-        movies_grid.clear_widgets()
-        for _, row in recsys.liked_movies.iterrows():
-            movie_label = Label(text=row['title'])
-            movies_grid.add_widget(movie_label)
-            print(f"Added liked movie: {row['title']}")
-        
+        self.liked_movies_list.clear_widgets()
+        liked_movies = [Movie(
+            imdb_id=row['imdb_id'],
+            title=row['title'],
+            poster_url=row['poster_url'],
+            genre=row['genre'],
+            director=row['director'],
+            actors=row['actors'],
+            release_date=row['release_date'],
+            liked=row['liked']
+        ) for _, row in recsys.liked_movies.iterrows()]
+        for movie in liked_movies:
+            movie_element = MovieListElement(movie, recsys)
+            print(f"Adding movie to liked list: {movie.title}")
+            self.liked_movies_list.add_widget(movie_element)
+        print(f"Added liked movies to the list")
+
     def update_recommendations_tab(self):
         print("Updating recommendations tab...")
-        recommendations_grid = self.ids.recommended_movies_list
-        recommendations_grid.clear_widgets()
+        self.recommended_movies_list.clear_widgets()
         recommendations = recsys.generate_recommendations()
-        for _, row in recommendations.iterrows():
-            movie_label = Label(text=row['title'])
-            recommendations_grid.add_widget(movie_label)
-            print(f"Added recommendation: {row['title']}")
-            
+        recommended_movies = [Movie(
+            imdb_id=row['imdb_id'],
+            title=row['title'],
+            poster_url=row['poster_url'],
+            genre=row['genre'],
+            director=row['director'],
+            actors=row['actors'],
+            release_date=row['release_date'],
+            liked=row['liked']
+        ) for _, row in recommendations.iterrows()]
+        for movie in recommended_movies:
+            movie_element = MovieListElement(movie, recsys)
+            print(f"Adding recommended movie: {movie.title}")
+            self.recommended_movies_list.add_widget(movie_element)
+        print(f"Added recommended movies to the list")
+
              
 class MovieRecomApp(App):
     def build(self):
@@ -163,3 +216,5 @@ def user_search_query(instance):
 
 if __name__ == '__main__':
     MovieRecomApp().run()
+
+
