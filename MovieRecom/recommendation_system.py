@@ -122,28 +122,11 @@ class RecommendationSystem():
             self.update_liked_movies_ui(movie, add=False)
         print(self.liked_movies)
 
-    def generate_recommendations(self):
-        recommendations = pd.DataFrame()
-        if not self.liked_movies.empty:
-            liked_directors = self.liked_movies['director'].unique()
-            liked_actors = self.liked_movies['actors'].explode().unique()
-            liked_genres = self.liked_movies['genre'].unique()
-
-            recommendations = self.all_movies[
-                (self.all_movies['director'].isin(liked_directors)) |
-                (self.all_movies['actors'].explode().isin(liked_actors)) |
-                (self.all_movies['genre'].isin(liked_genres))
-            ].drop_duplicates()
-
-            # Remove already liked movies from recommendations
-            recommendations = recommendations[~recommendations['imdb_id'].isin(self.liked_movies['imdb_id'])]
-        
-        print(f"Generated recommendations: {recommendations}")
-        return recommendations
 
     def update_liked_movies_ui(self, movie, add):
         print("Attempting to update UI...")
         try:
+            from movie_list_element import MovieListElement  # Local import to avoid circular dependency
             app = App.get_running_app()
             print("App instance:", app)
             root_widget = app.root
@@ -155,7 +138,8 @@ class RecommendationSystem():
                 print("Movie list widget found:", movie_list_widget)
 
                 if add:
-                    movie_list_widget.add_widget(Label(text=movie.title))
+                    movie_element = MovieListElement(movie, self)
+                    movie_list_widget.add_widget(movie_element)
                     print(f"Added movie to liked list: {movie.title}")
                 else:
                     for child in movie_list_widget.children[:]:
@@ -200,4 +184,22 @@ class RecommendationSystem():
         else:
             self.liked_actors = self.liked_actors.drop(self.liked_actors[self.liked_actors == actor.name].index)
 
-recsys = RecommendationSystem()
+
+# Placeholding code for a base algorithm that suggests movies with the same director
+    
+    def generate_recommendations(self):
+        # Assuming that liked_movies DataFrame has already been populated with liked movies
+        liked_directors = self.liked_movies['director'].explode().unique()
+        print(f"Liked directors: {liked_directors}")
+        recommendations = []
+
+        for director in liked_directors:
+            if director:
+                print(f"Fetching movies by director: {director}")
+                director_recommendations = self.fetch_movies_by_director(director)
+                print(f"Found {len(director_recommendations)} movies for director {director}")
+                recommendations.extend(director_recommendations)
+
+        recommendations_df = pd.DataFrame(recommendations).drop_duplicates(subset=['imdb_id'])
+        print(f"Generated recommendations: {recommendations_df}")
+        return recommendations_df
