@@ -4,7 +4,7 @@
     do_default_tab: False
     TabbedPanel:
         id: tab_panel
-        on_current_tab: app.root.handle_tab_switch(*args)
+        on_current_tab: root.handle_tab_switch  # Binding to root instead of app.root
 
         TabbedPanelItem:
             text: 'Search'
@@ -30,6 +30,7 @@
                     cols: 1
                     size_hint_y: None
                     height: self.minimum_height
+
 <Label>:
     text_size: self.size
     halign: 'left'
